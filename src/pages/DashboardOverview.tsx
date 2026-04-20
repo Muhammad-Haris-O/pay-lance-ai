@@ -4,18 +4,28 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   formatMoney, getPayments, Payment, seedDemoIfEmpty, toUSD, fromUSD,
 } from "@/lib/storage";
-import { TrendingUp, Wallet, Receipt, Sparkles, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Wallet, Receipt, Sparkles, ArrowUpRight, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+
+type Member = { id: string; name: string; email: string; created_at: string };
 
 export default function DashboardOverview() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
 
   useEffect(() => {
     if (!user) return;
     seedDemoIfEmpty(user.id);
     setPayments(getPayments(user.id));
+
+    supabase
+      .from("profiles")
+      .select("id, name, email, created_at")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setMembers((data as Member[]) ?? []));
   }, [user]);
 
   const stats = useMemo(() => {
@@ -109,6 +119,38 @@ export default function DashboardOverview() {
             <Link to="/dashboard/assistant">Ask the assistant →</Link>
           </Button>
         </div>
+      </div>
+
+      <div className="mt-8 glass rounded-2xl p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <h2 className="font-display text-lg font-semibold">Paylance members</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">{members.length} signed up</span>
+        </div>
+        {members.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">No users yet.</div>
+        ) : (
+          <ul className="divide-y divide-white/5">
+            {members.map((m) => (
+              <li key={m.id} className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+                    {(m.name || m.email).charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{m.name || "—"}</div>
+                    <div className="truncate text-xs text-muted-foreground">{m.email}</div>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground shrink-0">
+                  {new Date(m.created_at).toLocaleDateString()}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </DashboardLayout>
   );
