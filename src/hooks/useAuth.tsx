@@ -1,16 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 
-export type Profile = {
+export type AppUser = {
   id: string;
   name: string;
   email: string;
+  country: string;
+  currency: string;
 };
 
 type AuthCtx = {
-  user: SupabaseUser | null;
-  profile: Profile | null;
+  user: AppUser | null;
   session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
