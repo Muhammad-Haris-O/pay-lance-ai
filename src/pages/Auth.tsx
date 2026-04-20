@@ -29,8 +29,8 @@ export default function Auth({ mode: initialMode }: { mode: Mode }) {
     setLoading(true);
     try {
       if (mode === "signup") {
-        await signup({ name, email, password, country, currency });
-        toast({ title: "Welcome to Paylance!", description: "Your workspace is ready." });
+        await signup({ name, email, password });
+        toast({ title: "Account created 🎉", description: "Welcome to Paylance — your workspace is ready." });
       } else {
         await login(email, password);
         toast({ title: "Welcome back" });

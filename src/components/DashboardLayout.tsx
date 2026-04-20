@@ -14,7 +14,7 @@ const items = [
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const nav = useNavigate();
-
+  const handleSignOut = async () => { await logout(); nav("/"); };
   return (
     <div className="relative min-h-screen">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 aurora-bg opacity-60" />
@@ -56,7 +56,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               variant="glass"
               size="sm"
               className="mt-3 w-full"
-              onClick={() => { logout(); nav("/"); }}
+              onClick={handleSignOut}
             >
               <LogOut className="h-4 w-4" /> Sign out
             </Button>
@@ -67,7 +67,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="md:hidden">
           <div className="glass mb-4 flex items-center justify-between rounded-2xl p-3">
             <Logo to="/dashboard" />
-            <Button variant="glass" size="sm" onClick={() => { logout(); nav("/"); }}>
+            <Button variant="glass" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
