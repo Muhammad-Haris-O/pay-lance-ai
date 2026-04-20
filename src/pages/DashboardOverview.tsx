@@ -4,18 +4,28 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   formatMoney, getPayments, Payment, seedDemoIfEmpty, toUSD, fromUSD,
 } from "@/lib/storage";
-import { TrendingUp, Wallet, Receipt, Sparkles, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Wallet, Receipt, Sparkles, ArrowUpRight, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+
+type Member = { id: string; name: string; email: string; created_at: string };
 
 export default function DashboardOverview() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
 
   useEffect(() => {
     if (!user) return;
     seedDemoIfEmpty(user.id);
     setPayments(getPayments(user.id));
+
+    supabase
+      .from("profiles")
+      .select("id, name, email, created_at")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setMembers((data as Member[]) ?? []));
   }, [user]);
 
   const stats = useMemo(() => {
