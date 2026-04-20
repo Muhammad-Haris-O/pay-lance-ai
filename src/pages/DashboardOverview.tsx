@@ -4,18 +4,37 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   formatMoney, getPayments, Payment, seedDemoIfEmpty, toUSD, fromUSD,
 } from "@/lib/storage";
-import { TrendingUp, Wallet, Receipt, Sparkles, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Wallet, Receipt, Sparkles, ArrowUpRight, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+
+type ProfileRow = { id: string; name: string; email: string; created_at: string };
 
 export default function DashboardOverview() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     seedDemoIfEmpty(user.id);
     setPayments(getPayments(user.id));
+  }, [user]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, email, created_at")
+        .order("created_at", { ascending: false });
+      if (!mounted) return;
+      if (!error && data) setProfiles(data as ProfileRow[]);
+      setLoadingProfiles(false);
+    })();
+    return () => { mounted = false; };
   }, [user]);
 
   const stats = useMemo(() => {
@@ -109,6 +128,43 @@ export default function DashboardOverview() {
             <Link to="/dashboard/assistant">Ask the assistant →</Link>
           </Button>
         </div>
+      </div>
+
+      {/* Community / signed-up users from the database */}
+      <div className="glass mt-8 rounded-2xl p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <h2 className="font-display text-lg font-semibold">Paylance community</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {loadingProfiles ? "Loading…" : `${profiles.length} member${profiles.length === 1 ? "" : "s"}`}
+          </span>
+        </div>
+        {loadingProfiles ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Fetching members…</div>
+        ) : profiles.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">No members yet.</div>
+        ) : (
+          <ul className="divide-y divide-white/5">
+            {profiles.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 font-display text-sm font-semibold">
+                    {(p.name || p.email).slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{p.name || "Unnamed"}</div>
+                    <div className="truncate text-xs text-muted-foreground">{p.email}</div>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Joined {new Date(p.created_at).toLocaleDateString()}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </DashboardLayout>
   );
