@@ -22,36 +22,41 @@ type AuthCtx = {
 const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadProfile = async (sess: Session | null) => {
+      if (!sess?.user) {
+        setUser(null);
+        return;
+      }
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .eq("id", sess.user.id)
+        .maybeSingle();
+      setUser({
+        id: sess.user.id,
+        name: data?.name ?? (sess.user.user_metadata?.name as string) ?? sess.user.email ?? "",
+        email: data?.email ?? sess.user.email ?? "",
+        country: "India",
+        currency: "INR",
+      });
+    };
+
     // Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess?.user) {
-        // Defer DB call to avoid deadlocks
-        setTimeout(async () => {
-          const { data } = await supabase
-            .from("profiles")
-            .select("id, name, email")
-            .eq("id", sess.user.id)
-            .maybeSingle();
-          setProfile(data ?? null);
-        }, 0);
-      } else {
-        setProfile(null);
-      }
+      // Defer DB call to avoid deadlocks
+      setTimeout(() => { loadProfile(sess); }, 0);
     });
 
     // THEN check existing session
     supabase.auth.getSession().then(({ data: { session: sess } }) => {
       setSession(sess);
-      setUser(sess?.user ?? null);
-      setLoading(false);
+      loadProfile(sess).finally(() => setLoading(false));
     });
 
     return () => subscription.unsubscribe();
@@ -80,8 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, profile, session, loading, login, signup, logout }),
-    [user, profile, session, loading, login, signup, logout]
+    () => ({ user, session, loading, login, signup, logout }),
+    [user, session, loading, login, signup, logout]
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
