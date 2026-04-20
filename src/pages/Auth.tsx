@@ -30,12 +30,16 @@ export default function Auth({ mode: initialMode }: { mode: Mode }) {
     try {
       if (mode === "signup") {
         await signup({ name, email, password, country, currency });
-        toast({ title: "Welcome to Paylance!", description: "Your workspace is ready." });
+        toast({
+          title: "🎉 Account created!",
+          description: "Your details have been saved. Redirecting to your dashboard…",
+        });
+        nav("/dashboard");
       } else {
         await login(email, password);
         toast({ title: "Welcome back" });
+        nav("/dashboard");
       }
-      nav("/dashboard");
     } catch (err) {
       toast({ title: "Something went wrong", description: (err as Error).message, variant: "destructive" });
     } finally {
